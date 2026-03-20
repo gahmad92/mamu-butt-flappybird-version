@@ -27,47 +27,50 @@ export class Game extends Scene
     isGameOver: boolean = false;
     isPaused: boolean = false;
     isTransitioning: boolean = false;
+    isTourMode: boolean = false; // "Cheat" mode
+    
     pauseText: Phaser.GameObjects.Text;
     pauseButton: Phaser.GameObjects.Text;
+    tourText: Phaser.GameObjects.Text;
     
     // Vehicle Options
     vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
     currentVehicleIndex = 0;
     
-    // Ghibli Colors & Assets
-    level1Data = {
-        sky: 0x81D4FA,
-        pillar: 0xA5D6A7,
-        hillsDist: 0xC8E6C9,
-        hillsNear: 0x81C784,
-        details: ['🏘️', '🎡', '🌳']
-    };
-    
-    level2Data = {
-        sky: 0xE1F5FE,
-        pillar: 0xB3E5FC,
-        hillsDist: 0xE1F5FE,
-        hillsNear: 0x90CAF9,
-        details: ['🛖', '🌲', '🏔️']
-    };
-
-    level3Data = {
-        sky: 0x1A237E,
-        pillar: 0x4A148C,
-        hillsDist: 0x0D47A1,
-        hillsNear: 0x1565C0,
-        details: ['🏙️', '🏮', '🗼']
-    };
+    // 20 LEVEL BIOMES (Ghibli Palettes)
+    levelData = [
+        { name: "Jungle Village", sky: 0x81D4FA, pillar: 0xA5D6A7, dist: 0xC8E6C9, near: 0x81C784, details: ['🏘️', '🎡', '🌳'] },
+        { name: "Snowy Mountains", sky: 0xE1F5FE, pillar: 0xB3E5FC, dist: 0xE1F5FE, near: 0x90CAF9, details: ['🛖', '🌲', '🏔️'] },
+        { name: "Night City", sky: 0x1A237E, pillar: 0x4A148C, dist: 0x0D47A1, near: 0x1565C0, details: ['🏙️', '🏮', '🗼'] },
+        { name: "Sakura Valley", sky: 0xFCE4EC, pillar: 0xF48FB1, dist: 0xF8BBD0, near: 0xF06292, details: ['🌸', '🏯', '🍡'] },
+        { name: "Golden Wheat", sky: 0xFFF9C4, pillar: 0xFFF176, dist: 0xFFF59D, near: 0xFBC02D, details: ['🌾', '🏠', '🚜'] },
+        { name: "Lavender Mist", sky: 0xF3E5F5, pillar: 0xCE93D8, dist: 0xE1BEE7, near: 0xBA68C8, details: ['🪻', '⛲', '🦋'] },
+        { name: "Autumn Forest", sky: 0xFFF3E0, pillar: 0xFFB74D, dist: 0xFFE0B2, near: 0xFB8C00, details: ['🍁', '🍄', '🦊'] },
+        { name: "Coral Reef", sky: 0xE0F7FA, pillar: 0x4DD0E1, dist: 0xB2EBF2, near: 0x00ACC1, details: ['🐚', '🐙', '🌊'] },
+        { name: "Bamboo Grove", sky: 0xF1F8E9, pillar: 0xAED581, dist: 0xDCEDC8, near: 0x7CB342, details: ['🎋', '🎍', '🐼'] },
+        { name: "Rose Garden", sky: 0xFFEBEE, pillar: 0xE57373, dist: 0xFFCDD2, near: 0xD32F2F, details: ['🌹', '🥀', '🏰'] },
+        { name: "Emerald Lake", sky: 0xE0F2F1, pillar: 0x80CBC4, dist: 0xB2DFDB, near: 0x00897B, details: ['🦢', '🚣', '🍃'] },
+        { name: "Starry Night", sky: 0x0D47A1, pillar: 0x311B92, dist: 0x1A237E, near: 0x4527A0, details: ['⭐', '🌌', '🔭'] },
+        { name: "Volcanic Ash", sky: 0xEFEBE9, pillar: 0xA1887F, dist: 0xD7CCC8, near: 0x6D4C41, details: ['🌋', '🔥', '🪨'] },
+        { name: "Blueberry Hill", sky: 0xE8EAF6, pillar: 0x7986CB, dist: 0xC5CAE9, near: 0x3F51B5, details: ['🫐', '🧺', '🥧'] },
+        { name: "Matcha Tea", sky: 0xF9FBE7, pillar: 0xDCE775, dist: 0xF0F4C3, near: 0xAFB42B, details: ['🍵', '🍘', '🎎'] },
+        { name: "Candy Cloud", sky: 0xFFF0F5, pillar: 0xFFB6C1, dist: 0xFFC0CB, near: 0xFF69B4, details: ['🍭', '🍬', '🍦'] },
+        { name: "Silver Moon", sky: 0xFAFAFA, pillar: 0xBDBDBD, dist: 0xEEEEEE, near: 0x757575, details: ['🌙', '🐺', '☁️'] },
+        { name: "Peachy Sunset", sky: 0xFFE0B2, pillar: 0xFFAB91, dist: 0xFFCCBC, near: 0xE64A19, details: ['🍑', '🍹', '🌴'] },
+        { name: "Arctic Blue", sky: 0xB3E5FC, pillar: 0x29B6F6, dist: 0x81D4FA, near: 0x0288D1, details: ['🧊', '🐧', '🎿'] },
+        { name: "Cosmic Glow", sky: 0x4A148C, pillar: 0xAB47BC, dist: 0x7B1FA2, near: 0x6A1B9A, details: ['🛸', '👽', '👾'] }
+    ];
 
     constructor ()
     {
         super('Game');
     }
 
-    init(data: { vehicleIndex?: number }) {
+    init(data: { vehicleIndex?: number, isTourMode?: boolean }) {
         if (data && data.vehicleIndex !== undefined) {
             this.currentVehicleIndex = data.vehicleIndex;
         }
+        this.isTourMode = data?.isTourMode || false;
         this.score = 0;
         this.level = 1;
         this.isGameOver = false;
@@ -80,8 +83,7 @@ export class Game extends Scene
         const width = this.scale.width;
         const height = this.scale.height;
 
-        // Background layers
-        this.skyBg = this.add.rectangle(width/2, height/2, width, height, this.level1Data.sky);
+        this.skyBg = this.add.rectangle(width/2, height/2, width, height, this.levelData[0].sky);
         this.clouds = this.add.group();
         this.hillsDist = this.add.group();
         this.hillsNear = this.add.group();
@@ -89,33 +91,38 @@ export class Game extends Scene
 
         this.createScenery();
 
-        // Character: Mamu Butt on a Vehicle
         this.playerEmoji = this.add.text(0, -20, '🧔', { fontSize: '64px' }).setOrigin(0.5);
         this.vehicleEmoji = this.add.text(0, 20, this.vehicles[this.currentVehicleIndex], { fontSize: '56px' }).setOrigin(0.5);
         
         this.player = this.add.container(200, height / 2, [this.vehicleEmoji, this.playerEmoji]);
-        this.player.setSize(40, 40); // Smaller hitbox for "easy" gameplay
+        this.player.setSize(40, 40); 
         
         this.physics.add.existing(this.player);
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         body.setGravityY(900);
         body.setCollideWorldBounds(true);
 
-        // Hurdles
+        // Visual for Tour Mode
+        if (this.isTourMode) {
+            this.player.setAlpha(0.6);
+            this.tourText = this.add.text(width / 2, height - 40, 'WORLD TOUR MODE: INVINCIBLE', {
+                fontFamily: 'Arial', fontSize: '18px', color: '#FFF176',
+                stroke: '#000', strokeThickness: 3
+            }).setOrigin(0.5).setDepth(100);
+        }
+
         this.pillars = this.physics.add.group();
 
-        // UI
         this.scoreText = this.add.text(width / 2, 50, 'Score: 0', {
             fontFamily: 'Arial Black', fontSize: '32px', color: '#ffffff',
             stroke: '#455A64', strokeThickness: 4
         }).setOrigin(0.5).setDepth(100);
 
-        this.levelText = this.add.text(width / 2, 90, 'Level: Jungle & Village', {
+        this.levelText = this.add.text(width / 2, 90, 'Level 1: Jungle Village', {
             fontFamily: 'Arial Black', fontSize: '20px', color: '#ffffff',
             stroke: '#455A64', strokeThickness: 2
         }).setOrigin(0.5).setDepth(100);
 
-        // Pause Button
         this.pauseButton = this.add.text(width - 50, 50, '⏸️', { fontSize: '32px' })
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
@@ -128,7 +135,6 @@ export class Game extends Scene
             stroke: '#455A64', strokeThickness: 10
         }).setOrigin(0.5).setDepth(101).setVisible(false);
 
-        // Input
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (pointer.x > width - 100 && pointer.y < 100) return;
             this.flap();
@@ -138,13 +144,14 @@ export class Game extends Scene
             this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
                 if (event.key === 'p' || event.key === 'P') {
                     this.togglePause();
+                } else if (event.key === 't' || event.key === 'T') {
+                    this.toggleTourMode();
                 } else if (event.code === 'Space') {
                     this.flap();
                 }
             });
         }
 
-        // Spawn pillars every 2 seconds
         this.spawnTimer = this.time.addEvent({
             delay: 2000,
             callback: this.spawnPillar,
@@ -152,18 +159,31 @@ export class Game extends Scene
             loop: true
         });
 
-        // Collisions
         this.physics.add.overlap(this.player, this.pillars, this.hitPillar, undefined, this);
-
-        // Particles for Ghibli feel
         this.createParticles();
 
         EventBus.emit('current-scene-ready', this);
     }
 
+    toggleTourMode() {
+        this.isTourMode = !this.isTourMode;
+        this.player.setAlpha(this.isTourMode ? 0.6 : 1.0);
+        
+        if (this.isTourMode) {
+            if (!this.tourText) {
+                this.tourText = this.add.text(this.scale.width / 2, this.scale.height - 40, 'WORLD TOUR MODE: INVINCIBLE', {
+                    fontFamily: 'Arial', fontSize: '18px', color: '#FFF176',
+                    stroke: '#000', strokeThickness: 3
+                }).setOrigin(0.5).setDepth(100);
+            }
+            this.tourText.setVisible(true);
+        } else if (this.tourText) {
+            this.tourText.setVisible(false);
+        }
+    }
+
     togglePause() {
         if (this.isGameOver || this.isTransitioning) return;
-        
         this.isPaused = !this.isPaused;
         
         if (this.isPaused) {
@@ -182,30 +202,25 @@ export class Game extends Scene
     createScenery() {
         const width = this.scale.width;
         const height = this.scale.height;
-        const data = this.level === 1 ? this.level1Data : (this.level === 2 ? this.level2Data : this.level3Data);
+        const data = this.levelData[Math.min(this.level - 1, 19)];
 
-        // Distant Hills (Slowest)
         for (let i = 0; i < 3; i++) {
-            const hill = this.add.circle(i * 500, height - 100, 400, data.hillsDist).setAlpha(0.8);
+            const hill = this.add.circle(i * 500, height - 100, 400, data.dist).setAlpha(0.8);
             this.hillsDist.add(hill);
         }
 
-        // Detail Assets (Medium) - Houses, trees, etc.
         for (let i = 0; i < 6; i++) {
             const asset = Phaser.Utils.Array.GetRandom(data.details);
             const x = Phaser.Math.Between(0, width * 2);
-            const y = height - 100;
-            const detail = this.add.text(x, y, asset, { fontSize: '48px' }).setOrigin(0.5, 1).setAlpha(0.35);
+            const detail = this.add.text(x, height - 100, asset, { fontSize: '48px' }).setOrigin(0.5, 1).setAlpha(0.35);
             this.detailAssets.add(detail);
         }
 
-        // Near Hills (Faster)
         for (let i = 0; i < 4; i++) {
-            const hill = this.add.circle(i * 300, height - 50, 250, data.hillsNear).setAlpha(0.9);
+            const hill = this.add.circle(i * 300, height - 50, 250, data.near).setAlpha(0.9);
             this.hillsNear.add(hill);
         }
 
-        // Clouds (Floating)
         for (let i = 0; i < 5; i++) {
             const cloud = this.add.text(Phaser.Math.Between(0, width), Phaser.Math.Between(50, 300), '☁️', { fontSize: '64px' }).setAlpha(0.5);
             this.clouds.add(cloud);
@@ -243,31 +258,16 @@ export class Game extends Scene
     createParticles() {
         const particles = this.add.particles(0, 0, 'star', {
             x: { min: 0, max: 1024 },
-            y: -10,
-            lifespan: 5000,
-            speedY: { min: 50, max: 150 },
-            speedX: { min: -20, max: 20 },
-            scale: { start: 0.2, end: 0 },
-            alpha: { start: 0.6, end: 0 },
-            rotate: { min: 0, max: 360 },
-            frequency: 100,
-            blendMode: 'ADD'
+            y: -10, lifespan: 5000, speedY: { min: 50, max: 150 }, scale: { start: 0.2, end: 0 }, alpha: { start: 0.6, end: 0 },
+            frequency: 100, blendMode: 'ADD'
         });
         particles.setDepth(1);
     }
 
     flap() {
         if (this.isGameOver || this.isPaused) return;
-        
-        const body = this.player.body as Phaser.Physics.Arcade.Body;
-        body.setVelocityY(-380); // Restored stronger jump
-        
-        this.tweens.add({
-            targets: this.player,
-            angle: -15,
-            duration: 100,
-            yoyo: true
-        });
+        (this.player.body as Phaser.Physics.Arcade.Body).setVelocityY(-380);
+        this.tweens.add({ targets: this.player, angle: -15, duration: 100, yoyo: true });
     }
 
     spawnPillar() {
@@ -278,8 +278,7 @@ export class Game extends Scene
         const gap = 280;
         const minPillarHeight = 100;
         const randomHeight = Phaser.Math.Between(minPillarHeight, height - gap - minPillarHeight);
-
-        const data = this.level === 1 ? this.level1Data : (this.level === 2 ? this.level2Data : this.level3Data);
+        const data = this.levelData[Math.min(this.level - 1, 19)];
 
         const topPillar = this.add.rectangle(width + 50, randomHeight / 2, 80, randomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5);
         this.pillars.add(topPillar);
@@ -304,65 +303,53 @@ export class Game extends Scene
     }
 
     checkLevelTransition() {
-        if (this.score === 10 && this.level === 1) {
-            this.performTransition(2, 'Level: Snowy Mountains', this.level2Data);
-        } else if (this.score === 20 && this.level === 2) {
-            this.performTransition(3, 'Level: Night City', this.level3Data);
+        if (this.score % 10 === 0 && this.score > 0) {
+            const nextLevel = (this.score / 10) + 1;
+            if (nextLevel <= 20) {
+                this.performTransition(nextLevel);
+            }
         }
     }
 
-    performTransition(newLevel: number, label: string, data: any) {
+    performTransition(newLevel: number) {
         this.isTransitioning = true;
         this.level = newLevel;
-        this.levelText.setText(label);
+        const data = this.levelData[Math.min(this.level - 1, 19)];
+        this.levelText.setText(`Level ${this.level}: ${data.name}`);
         
-        // Faster fade for better feel
         this.cameras.main.fadeOut(300, 255, 255, 255);
-        
         this.cameras.main.once('camerafadeoutcomplete', () => {
             this.skyBg.setFillStyle(data.sky);
-            
             this.hillsDist.clear(true, true);
             this.hillsNear.clear(true, true);
             this.detailAssets.clear(true, true);
             this.createScenery();
             
-            if (this.vehicles[this.currentVehicleIndex] === '🛹' || this.level === 3) {
-                 if (this.level === 2) this.vehicleEmoji.setText('🛸');
-                 if (this.level === 3) this.vehicleEmoji.setText('🛋️');
+            if (this.vehicles[this.currentVehicleIndex] === '🛹') {
+                 if (this.level % 2 === 0) this.vehicleEmoji.setText('🛸');
+                 else this.vehicleEmoji.setText('🛹');
             }
             
             this.cameras.main.fadeIn(300, 255, 255, 255);
-            
-            this.time.delayedCall(100, () => {
-                this.isTransitioning = false;
-            });
+            this.time.delayedCall(100, () => { this.isTransitioning = false; });
         });
     }
 
     hitPillar() {
-        if (this.isTransitioning) return; // Invincible during level change
+        if (this.isTransitioning || this.isTourMode) return; 
         
         this.isGameOver = true;
         this.physics.pause();
         this.spawnTimer.remove();
-        
         this.playerEmoji.setText('😵');
         this.cameras.main.shake(500, 0.02);
-        
-        this.time.delayedCall(1000, () => {
-            this.scene.start('GameOver');
-        });
+        this.time.delayedCall(1000, () => { this.scene.start('GameOver'); });
     }
 
     update(time: number, delta: number) {
         if (this.isGameOver || this.isPaused || !this.player || !this.player.body) return;
-        
         this.updateScenery(delta);
-
         const body = this.player.body as Phaser.Physics.Arcade.Body;
-        if (body.velocity.y > 0) {
-            this.player.angle = Math.min(this.player.angle + 2, 30);
-        }
+        if (body.velocity.y > 0) { this.player.angle = Math.min(this.player.angle + 2, 30); }
     }
 }

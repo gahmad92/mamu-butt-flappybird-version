@@ -13,7 +13,7 @@ export class Game extends Scene
     hillsDist: Phaser.GameObjects.Group;
     hillsNear: Phaser.GameObjects.Group;
     detailAssets: Phaser.GameObjects.Group;
-    skyAssets: Phaser.GameObjects.Group; // New: For Birds, Airplanes, Dragons
+    skyAssets: Phaser.GameObjects.Group;
     
     pillars: Phaser.Physics.Arcade.Group;
     
@@ -84,58 +84,62 @@ export class Game extends Scene
         const width = this.scale.width;
         const height = this.scale.height;
 
-        this.skyBg = this.add.rectangle(width/2, height/2, width, height, this.levelData[0].sky);
+        // Background layers (Depths 0-10)
+        this.skyBg = this.add.rectangle(width/2, height/2, width, height, this.levelData[0].sky).setDepth(0);
         this.clouds = this.add.group();
         this.hillsDist = this.add.group();
         this.hillsNear = this.add.group();
         this.detailAssets = this.add.group();
-        this.skyAssets = this.add.group(); // Initialize new group
+        this.skyAssets = this.add.group();
 
         this.createScenery();
 
+        // Character: Mamu Butt (Depth 50) - Only collides with pillars
         this.playerEmoji = this.add.text(0, -20, '🧔', { fontSize: '64px' }).setOrigin(0.5);
         this.vehicleEmoji = this.add.text(0, 20, this.vehicles[this.currentVehicleIndex], { fontSize: '56px' }).setOrigin(0.5);
         
         this.player = this.add.container(200, height / 2, [this.vehicleEmoji, this.playerEmoji]);
         this.player.setSize(40, 40); 
+        this.player.setDepth(50);
         
         this.physics.add.existing(this.player);
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         body.setGravityY(900);
         body.setCollideWorldBounds(true);
 
-        // Visual for Tour Mode
         if (this.isTourMode) {
             this.player.setAlpha(0.6);
             this.tourText = this.add.text(width / 2, height - 40, 'WORLD TOUR MODE: INVINCIBLE', {
                 fontFamily: 'Arial', fontSize: '18px', color: '#FFF176',
                 stroke: '#000', strokeThickness: 3
-            }).setOrigin(0.5).setDepth(100);
+            }).setOrigin(0.5).setDepth(200);
         }
 
+        // Pillars (Depth 100) - The only solid objects
         this.pillars = this.physics.add.group();
 
+        // UI (Depth 200)
         this.scoreText = this.add.text(width / 2, 50, 'Score: 0', {
             fontFamily: 'Arial Black', fontSize: '32px', color: '#ffffff',
             stroke: '#455A64', strokeThickness: 4
-        }).setOrigin(0.5).setDepth(100);
+        }).setOrigin(0.5).setDepth(200);
 
         this.levelText = this.add.text(width / 2, 90, 'Level 1: Jungle Village', {
             fontFamily: 'Arial Black', fontSize: '20px', color: '#ffffff',
             stroke: '#455A64', strokeThickness: 2
-        }).setOrigin(0.5).setDepth(100);
+        }).setOrigin(0.5).setDepth(200);
 
         this.pauseButton = this.add.text(width - 50, 50, '⏸️', { fontSize: '32px' })
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .setDepth(101);
+            .setDepth(200);
 
         this.pauseButton.on('pointerdown', () => this.togglePause());
 
         this.pauseText = this.add.text(width / 2, height / 2, 'PAUSED', {
             fontFamily: 'Arial Black', fontSize: '64px', color: '#ffffff',
             stroke: '#455A64', strokeThickness: 10
-        }).setOrigin(0.5).setDepth(101).setVisible(false);
+        }).setOrigin(0.5).setDepth(201).setVisible(false);
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (pointer.x > width - 100 && pointer.y < 100) return;
@@ -176,7 +180,7 @@ export class Game extends Scene
                 this.tourText = this.add.text(this.scale.width / 2, this.scale.height - 40, 'WORLD TOUR MODE: INVINCIBLE', {
                     fontFamily: 'Arial', fontSize: '18px', color: '#FFF176',
                     stroke: '#000', strokeThickness: 3
-                }).setOrigin(0.5).setDepth(100);
+                }).setOrigin(0.5).setDepth(200);
             }
             this.tourText.setVisible(true);
         } else if (this.tourText) {
@@ -207,17 +211,16 @@ export class Game extends Scene
         const data = this.levelData[Math.min(this.level - 1, 19)];
 
         for (let i = 0; i < 3; i++) {
-            const hill = this.add.circle(i * 500, height - 100, 400, data.dist).setAlpha(0.8);
+            const hill = this.add.circle(i * 500, height - 100, 400, data.dist).setAlpha(0.8).setDepth(1);
             this.hillsDist.add(hill);
         }
 
-        // Sky Assets (Medium-Fast) - Birds, Planes, Dragons
         if (data.skyDetails && data.skyDetails.length > 0) {
             for (let i = 0; i < 3; i++) {
                 const asset = Phaser.Utils.Array.GetRandom(data.skyDetails);
                 const x = Phaser.Math.Between(0, width * 2);
                 const y = Phaser.Math.Between(100, 400);
-                const skyAsset = this.add.text(x, y, asset, { fontSize: '42px' }).setOrigin(0.5).setAlpha(0.2);
+                const skyAsset = this.add.text(x, y, asset, { fontSize: '42px' }).setOrigin(0.5).setAlpha(0.2).setDepth(2);
                 this.skyAssets.add(skyAsset);
             }
         }
@@ -225,17 +228,17 @@ export class Game extends Scene
         for (let i = 0; i < 6; i++) {
             const asset = Phaser.Utils.Array.GetRandom(data.details);
             const x = Phaser.Math.Between(0, width * 2);
-            const detail = this.add.text(x, height - 100, asset, { fontSize: '48px' }).setOrigin(0.5, 1).setAlpha(0.35);
+            const detail = this.add.text(x, height - 100, asset, { fontSize: '48px' }).setOrigin(0.5, 1).setAlpha(0.35).setDepth(3);
             this.detailAssets.add(detail);
         }
 
         for (let i = 0; i < 4; i++) {
-            const hill = this.add.circle(i * 300, height - 50, 250, data.near).setAlpha(0.9);
+            const hill = this.add.circle(i * 300, height - 50, 250, data.near).setAlpha(0.9).setDepth(4);
             this.hillsNear.add(hill);
         }
 
         for (let i = 0; i < 5; i++) {
-            const cloud = this.add.text(Phaser.Math.Between(0, width), Phaser.Math.Between(50, 300), '☁️', { fontSize: '64px' }).setAlpha(0.5);
+            const cloud = this.add.text(Phaser.Math.Between(0, width), Phaser.Math.Between(50, 300), '☁️', { fontSize: '64px' }).setAlpha(0.5).setDepth(5);
             this.clouds.add(cloud);
         }
     }
@@ -250,7 +253,7 @@ export class Game extends Scene
         });
 
         this.skyAssets.children.iterate((child: any) => {
-            child.x -= 2.0; // Faster parallax for birds/planes
+            child.x -= 2.0;
             if (child.x < -100) child.x = this.scale.width + 100;
             return true;
         });
@@ -299,13 +302,13 @@ export class Game extends Scene
         const randomHeight = Phaser.Math.Between(minPillarHeight, height - gap - minPillarHeight);
         const data = this.levelData[Math.min(this.level - 1, 19)];
 
-        const topPillar = this.add.rectangle(width + 50, randomHeight / 2, 80, randomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5);
+        const topPillar = this.add.rectangle(width + 50, randomHeight / 2, 80, randomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5).setDepth(100);
         this.pillars.add(topPillar);
         (topPillar.body as Phaser.Physics.Arcade.Body).setVelocityX(-200);
         (topPillar.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
 
         const bottomHeight = height - randomHeight - gap;
-        const bottomPillar = this.add.rectangle(width + 50, height - bottomHeight / 2, 80, bottomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5);
+        const bottomPillar = this.add.rectangle(width + 50, height - bottomHeight / 2, 80, bottomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5).setDepth(100);
         this.pillars.add(bottomPillar);
         (bottomPillar.body as Phaser.Physics.Arcade.Body).setVelocityX(-200);
         (bottomPillar.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
@@ -342,7 +345,7 @@ export class Game extends Scene
             this.hillsDist.clear(true, true);
             this.hillsNear.clear(true, true);
             this.detailAssets.clear(true, true);
-            this.skyAssets.clear(true, true); // Clear sky assets too
+            this.skyAssets.clear(true, true);
             this.createScenery();
             
             if (this.vehicles[this.currentVehicleIndex] === '🛹') {

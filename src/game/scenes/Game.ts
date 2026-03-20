@@ -6,6 +6,8 @@ export class Game extends Scene
     player: Phaser.GameObjects.Container;
     playerEmoji: Phaser.GameObjects.Text;
     vehicleEmoji: Phaser.GameObjects.Text;
+    hatEmoji: Phaser.GameObjects.Text;
+    companionEmoji: Phaser.GameObjects.Text;
     
     // Parallax Backgrounds
     skyBg: Phaser.GameObjects.Rectangle;
@@ -35,32 +37,32 @@ export class Game extends Scene
     tourText: Phaser.GameObjects.Text;
     
     // Vehicle Options
-    vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', ' Couch 🛋️']; // Sofa is a couch
+    vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
     actualVehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
     currentVehicleIndex = 0;
     
     // 20 LEVEL BIOMES (Ghibli Palettes)
     levelData = [
-        { name: "Jungle Village", sky: 0x81D4FA, pillar: 0xA5D6A7, dist: 0xC8E6C9, near: 0x81C784, details: ['🏘️', '🎡', '🌳'], skyDetails: [] },
-        { name: "Snowy Mountains", sky: 0xE1F5FE, pillar: 0xB3E5FC, dist: 0xE1F5FE, near: 0x90CAF9, details: ['🛖', '🌲', '🏔️'], skyDetails: [] },
-        { name: "Night City", sky: 0x1A237E, pillar: 0x4A148C, dist: 0x0D47A1, near: 0x1565C0, details: ['🏙️', '🏮', '🗼'], skyDetails: ['🦅', '✈️'] },
-        { name: "Sakura Valley", sky: 0xFCE4EC, pillar: 0xF48FB1, dist: 0xF8BBD0, near: 0xF06292, details: ['🌸', '🏯', '🍡'], skyDetails: ['🦅', '🚁'] },
-        { name: "Golden Wheat", sky: 0xFFF9C4, pillar: 0xFFF176, dist: 0xFFF59D, near: 0xFBC02D, details: ['🌾', '🏠', '🚜', '🦌'], skyDetails: ['🦅'] },
-        { name: "Lavender Mist", sky: 0xF3E5F5, pillar: 0xCE93D8, dist: 0xE1BEE7, near: 0xBA68C8, details: ['🪻', '⛲', '🦋', '🐎'], skyDetails: ['🦅'] },
-        { name: "Autumn Forest", sky: 0xFFF3E0, pillar: 0xFFB74D, dist: 0xFFE0B2, near: 0xFB8C00, details: ['🍁', '🍄', '🦊'], skyDetails: ['🦅', '✈️'] },
-        { name: "Coral Reef", sky: 0xE0F7FA, pillar: 0x4DD0E1, dist: 0xB2EBF2, near: 0x00ACC1, details: ['🐚', '🐙', '🌊', '🐳'], skyDetails: ['🛸'] },
-        { name: "Bamboo Grove", sky: 0xF1F8E9, pillar: 0xAED581, dist: 0xDCEDC8, near: 0x7CB342, details: ['🎋', '🎍', '🐼'], skyDetails: ['🦅'] },
-        { name: "Rose Garden", sky: 0xFFEBEE, pillar: 0xE57373, dist: 0xFFCDD2, near: 0xD32F2F, details: ['🌹', '🥀', '🏰'], skyDetails: ['🦅', '🚁'] },
-        { name: "Emerald Lake", sky: 0xE0F2F1, pillar: 0x80CBC4, dist: 0xB2DFDB, near: 0x00897B, details: ['🦢', '🚣', '🍃'], skyDetails: ['🦅'] },
-        { name: "Starry Night", sky: 0x0D47A1, pillar: 0x311B92, dist: 0x1A237E, near: 0x4527A0, details: ['⭐', '🌌', '🔭'], skyDetails: ['🐉', '🛸'] },
-        { name: "Volcanic Ash", sky: 0xEFEBE9, pillar: 0xA1887F, dist: 0xD7CCC8, near: 0x6D4C41, details: ['🌋', '🔥', '🪨'], skyDetails: ['🐉', '🚁'] },
-        { name: "Blueberry Hill", sky: 0xE8EAF6, pillar: 0x7986CB, dist: 0xC5CAE9, near: 0x3F51B5, details: ['🫐', '🧺', '🥧'], skyDetails: ['🦅', '✈️'] },
-        { name: "Matcha Tea", sky: 0xF9FBE7, pillar: 0xDCE775, dist: 0xF0F4C3, near: 0xAFB42B, details: ['🍵', '🍘', '🎎'], skyDetails: ['🦅'] },
-        { name: "Candy Cloud", sky: 0xFFF0F5, pillar: 0xFFB6C1, dist: 0xFFC0CB, near: 0xFF69B4, details: ['🍭', '🍬', '🍦'], skyDetails: ['🦄', '✈️'] },
-        { name: "Silver Moon", sky: 0xFAFAFA, pillar: 0xBDBDBD, dist: 0xEEEEEE, near: 0x757575, details: ['🌙', '🐺', '☁️'], skyDetails: ['🐉'] },
-        { name: "Peachy Sunset", sky: 0xFFE0B2, pillar: 0xFFAB91, dist: 0xFFCCBC, near: 0xE64A19, details: ['🍑', '🍹', '🌴'], skyDetails: ['🦅', '✈️'] },
-        { name: "Arctic Blue", sky: 0xB3E5FC, pillar: 0x29B6F6, dist: 0x81D4FA, near: 0x0288D1, details: ['🧊', '🐧', '🎿'], skyDetails: ['🦅', '🚁'] },
-        { name: "Cosmic Glow", sky: 0x4A148C, pillar: 0xAB47BC, dist: 0x7B1FA2, near: 0x6A1B9A, details: ['🛸', '👽', '👾'], skyDetails: ['🐉', '🛸', '🚀'] }
+        { name: "Jungle Village", sky: 0x81D4FA, pillar: 0xA5D6A7, dist: 0xC8E6C9, near: 0x81C784, details: ['🏘️', '🎡', '🌳'], skyDetails: [], hat: '👒' },
+        { name: "Snowy Mountains", sky: 0xE1F5FE, pillar: 0xB3E5FC, dist: 0xE1F5FE, near: 0x90CAF9, details: ['🛖', '🌲', '🏔️'], skyDetails: [], hat: '🧶' },
+        { name: "Night City", sky: 0x1A237E, pillar: 0x4A148C, dist: 0x0D47A1, near: 0x1565C0, details: ['🏙️', '🏮', '🗼'], skyDetails: ['🦅', '✈️'], hat: '🎩' },
+        { name: "Sakura Valley", sky: 0xFCE4EC, pillar: 0xF48FB1, dist: 0xF8BBD0, near: 0xF06292, details: ['🌸', '🏯', '🍡'], skyDetails: ['🦅', '🚁'], hat: '💮' },
+        { name: "Golden Wheat", sky: 0xFFF9C4, pillar: 0xFFF176, dist: 0xFFF59D, near: 0xFBC02D, details: ['🌾', '🏠', '🚜', '🦌'], skyDetails: ['🦅'], hat: '👒' },
+        { name: "Lavender Mist", sky: 0xF3E5F5, pillar: 0xCE93D8, dist: 0xE1BEE7, near: 0xBA68C8, details: ['🪻', '⛲', '🦋', '🐎'], skyDetails: ['🦅'], hat: '👒' },
+        { name: "Autumn Forest", sky: 0xFFF3E0, pillar: 0xFFB74D, dist: 0xFFE0B2, near: 0xFB8C00, details: ['🍁', '🍄', '🦊'], skyDetails: ['🦅', '✈️'], hat: '👒' },
+        { name: "Coral Reef", sky: 0xE0F7FA, pillar: 0x4DD0E1, dist: 0xB2EBF2, near: 0x00ACC1, details: ['🐚', '🐙', '🌊', '🐳'], skyDetails: ['🛸'], hat: '🤿' },
+        { name: "Bamboo Grove", sky: 0xF1F8E9, pillar: 0xAED581, dist: 0xDCEDC8, near: 0x7CB342, details: ['🎋', '🎍', '🐼'], skyDetails: ['🦅'], hat: '👒' },
+        { name: "Rose Garden", sky: 0xFFEBEE, pillar: 0xE57373, dist: 0xFFCDD2, near: 0xD32F2F, details: ['🌹', '🥀', '🏰'], skyDetails: ['🦅', '🚁'], hat: '👑' },
+        { name: "Emerald Lake", sky: 0xE0F2F1, pillar: 0x80CBC4, dist: 0xB2DFDB, near: 0x00897B, details: ['🦢', '🚣', '🍃'], skyDetails: ['🦅'], hat: '👒' },
+        { name: "Starry Night", sky: 0x0D47A1, pillar: 0x311B92, dist: 0x1A237E, near: 0x4527A0, details: ['⭐', '🌌', '🔭'], skyDetails: ['🐉', '🛸'], hat: '👨‍🚀' },
+        { name: "Volcanic Ash", sky: 0xEFEBE9, pillar: 0xA1887F, dist: 0xD7CCC8, near: 0x6D4C41, details: ['🌋', '🔥', '🪨'], skyDetails: ['🐉', '🚁'], hat: '⛑️' },
+        { name: "Blueberry Hill", sky: 0xE8EAF6, pillar: 0x7986CB, dist: 0xC5CAE9, near: 0x3F51B5, details: ['🫐', '🧺', '🥧'], skyDetails: ['🦅', '✈️'], hat: '👒' },
+        { name: "Matcha Tea", sky: 0xF9FBE7, pillar: 0xDCE775, dist: 0xF0F4C3, near: 0xAFB42B, details: ['🍵', '🍘', '🎎'], skyDetails: ['🦅'], hat: '👒' },
+        { name: "Candy Cloud", sky: 0xFFF0F5, pillar: 0xFFB6C1, dist: 0xFFC0CB, near: 0xFF69B4, details: ['🍭', '🍬', '🍦'], skyDetails: ['🦄', '✈️'], hat: '🎀' },
+        { name: "Silver Moon", sky: 0xFAFAFA, pillar: 0xBDBDBD, dist: 0xEEEEEE, near: 0x757575, details: ['🌙', '🐺', '☁️'], skyDetails: ['🐉'], hat: '👨‍🚀' },
+        { name: "Peachy Sunset", sky: 0xFFE0B2, pillar: 0xFFAB91, dist: 0xFFCCBC, near: 0xE64A19, details: ['🍑', '🍹', '🌴'], skyDetails: ['🦅', '✈️'], hat: '👒' },
+        { name: "Arctic Blue", sky: 0xB3E5FC, pillar: 0x29B6F6, dist: 0x81D4FA, near: 0x0288D1, details: ['🧊', '🐧', '🎿'], skyDetails: ['🦅', '🚁'], hat: '🧶' },
+        { name: "Cosmic Glow", sky: 0x4A148C, pillar: 0xAB47BC, dist: 0x7B1FA2, near: 0x6A1B9A, details: ['🛸', '👽', '👾'], skyDetails: ['🐉', '🛸', '🚀'], hat: '👨‍🚀' }
     ];
 
     constructor ()
@@ -95,16 +97,17 @@ export class Game extends Scene
 
         this.createScenery();
 
-        // Character: Mamu Butt (Depth 50) - Original Good Position
+        // Character Components
         this.playerEmoji = this.add.text(0, -20, '🧔', { fontSize: '64px' }).setOrigin(0.5);
+        this.hatEmoji = this.add.text(0, -55, this.levelData[0].hat, { fontSize: '40px' }).setOrigin(0.5);
+        this.companionEmoji = this.add.text(-45, -30, '🐦', { fontSize: '32px' }).setOrigin(0.5);
         
-        // Vehicle with Dynamic Offset & Flip (🛺, ⛵, 🛵 to the Right and Facing Right)
         const vEmoji = this.actualVehicles[this.currentVehicleIndex];
         this.vehicleEmoji = this.add.text(0, 20, vEmoji, { fontSize: '56px' }).setOrigin(0.5);
         
         this.applyVehicleStyle(vEmoji);
         
-        this.player = this.add.container(200, height / 2, [this.vehicleEmoji, this.playerEmoji]);
+        this.player = this.add.container(200, height / 2, [this.vehicleEmoji, this.playerEmoji, this.hatEmoji, this.companionEmoji]);
         this.player.setSize(40, 40); 
         this.player.setDepth(50);
         
@@ -305,7 +308,19 @@ export class Game extends Scene
     flap() {
         if (this.isGameOver || this.isPaused) return;
         (this.player.body as Phaser.Physics.Arcade.Body).setVelocityY(-380);
+        
+        // Mamu tilt
         this.tweens.add({ targets: this.player, angle: -15, duration: 100, yoyo: true });
+        
+        // Companion reaction (Bird flutter)
+        this.tweens.add({
+            targets: this.companionEmoji,
+            y: -45,
+            scale: 1.3,
+            duration: 150,
+            yoyo: true,
+            ease: 'Back.easeOut'
+        });
     }
 
     spawnPillar() {
@@ -363,6 +378,9 @@ export class Game extends Scene
             this.detailAssets.clear(true, true);
             this.skyAssets.clear(true, true);
             this.createScenery();
+            
+            // Update Hat
+            this.hatEmoji.setText(data.hat);
             
             // Re-apply offsets & flips for updated vehicle
             let vEmoji = this.actualVehicles[this.currentVehicleIndex];

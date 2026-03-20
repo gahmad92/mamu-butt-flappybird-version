@@ -37,8 +37,8 @@ export class Game extends Scene
     tourText: Phaser.GameObjects.Text;
     
     // Vehicle Options
+    actualVehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', ' Couch 🛋️'];
     vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
-    actualVehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
     currentVehicleIndex = 0;
     
     // 20 LEVEL BIOMES (Ghibli Palettes)
@@ -97,22 +97,23 @@ export class Game extends Scene
 
         this.createScenery();
 
-        // Character Components
+        // Character: Mamu Butt
         this.playerEmoji = this.add.text(0, -20, '🧔', { fontSize: '64px' }).setOrigin(0.5);
+        
+        const vEmoji = this.vehicles[this.currentVehicleIndex];
+        this.vehicleEmoji = this.add.text(0, 20, vEmoji, { fontSize: '56px' }).setOrigin(0.5);
         this.hatEmoji = this.add.text(0, -55, this.levelData[0].hat, { fontSize: '40px' }).setOrigin(0.5);
         this.companionEmoji = this.add.text(-45, -30, '🐦', { fontSize: '32px' }).setOrigin(0.5);
-        
-        const vEmoji = this.actualVehicles[this.currentVehicleIndex];
-        this.vehicleEmoji = this.add.text(0, 20, vEmoji, { fontSize: '56px' }).setOrigin(0.5);
         
         this.applyVehicleStyle(vEmoji);
         
         this.player = this.add.container(200, height / 2, [this.vehicleEmoji, this.playerEmoji, this.hatEmoji, this.companionEmoji]);
-        this.player.setSize(40, 40); 
         this.player.setDepth(50);
         
+        // MERCY HITBOX: Use a tiny circle (radius 10) centered on Mamu's face
         this.physics.add.existing(this.player);
         const body = this.player.body as Phaser.Physics.Arcade.Body;
+        body.setCircle(10, -10, -30); // Tiny 20px diameter circle right on the face
         body.setGravityY(900);
         body.setCollideWorldBounds(true);
 
@@ -183,7 +184,7 @@ export class Game extends Scene
     applyVehicleStyle(emoji: string) {
         if (emoji === '🛺' || emoji === '⛵' || emoji === '🛵') {
             this.vehicleEmoji.setX(35);
-            this.vehicleEmoji.setScale(-1, 1); // Flip to face Right
+            this.vehicleEmoji.setScale(-1, 1);
         } else {
             this.vehicleEmoji.setX(0);
             this.vehicleEmoji.setScale(1, 1);
@@ -309,10 +310,8 @@ export class Game extends Scene
         if (this.isGameOver || this.isPaused) return;
         (this.player.body as Phaser.Physics.Arcade.Body).setVelocityY(-380);
         
-        // Mamu tilt
         this.tweens.add({ targets: this.player, angle: -15, duration: 100, yoyo: true });
         
-        // Companion reaction (Bird flutter)
         this.tweens.add({
             targets: this.companionEmoji,
             y: -45,
@@ -323,30 +322,59 @@ export class Game extends Scene
         });
     }
 
+    createComicPipe(x: number, height: number, color: number, isTop: boolean) {
+        const width = 80;
+        const rimWidth = 100;
+        const rimHeight = 40;
+        const container = this.add.container(x, isTop ? height / 2 : this.scale.height - height / 2);
+        
+        const body = this.add.rectangle(0, 0, width, height, color)
+            .setStrokeStyle(4, 0x000000);
+        
+        const rimY = isTop ? (height / 2) - (rimHeight / 2) : -(height / 2) + (rimHeight / 2);
+        const rim = this.add.rectangle(0, rimY, rimWidth, rimHeight, color)
+            .setStrokeStyle(4, 0x000000);
+            
+        const highlight = this.add.rectangle(-width/4, 0, 10, height - 10, 0xffffff, 0.3);
+        
+        container.add([body, rim, highlight]);
+        container.setDepth(100);
+        
+        return container;
+    }
+
     spawnPillar() {
         if (this.isGameOver || this.isPaused || this.isTransitioning) return;
 
         const width = this.scale.width;
         const height = this.scale.height;
-        const gap = 280;
+        const gap = 320; // HUGE GAP FOR MERCY
         const minPillarHeight = 100;
         const randomHeight = Phaser.Math.Between(minPillarHeight, height - gap - minPillarHeight);
         const data = this.levelData[Math.min(this.level - 1, 19)];
 
-        const topPillar = this.add.rectangle(width + 50, randomHeight / 2, 80, randomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5).setDepth(100);
-        this.pillars.add(topPillar);
-        (topPillar.body as Phaser.Physics.Arcade.Body).setVelocityX(-200);
-        (topPillar.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+        const topPipe = this.createComicPipe(width + 50, randomHeight, data.pillar, true);
+        this.pillars.add(topPipe);
+        const topBody = topPipe.body as Phaser.Physics.Arcade.Body;
+        topBody.setVelocityX(-200);
+        topBody.setAllowGravity(false);
+        // MERCY PIPE: Hitbox is narrower than visual (60px instead of 80px)
+        topBody.setSize(60, randomHeight);
+        topBody.setOffset(-30, -randomHeight/2);
 
         const bottomHeight = height - randomHeight - gap;
-        const bottomPillar = this.add.rectangle(width + 50, height - bottomHeight / 2, 80, bottomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5).setDepth(100);
-        this.pillars.add(bottomPillar);
-        (bottomPillar.body as Phaser.Physics.Arcade.Body).setVelocityX(-200);
-        (bottomPillar.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+        const bottomPipe = this.createComicPipe(width + 50, bottomHeight, data.pillar, false);
+        this.pillars.add(bottomPipe);
+        const botBody = bottomPipe.body as Phaser.Physics.Arcade.Body;
+        botBody.setVelocityX(-200);
+        botBody.setAllowGravity(false);
+        // MERCY PIPE: Hitbox is narrower than visual
+        botBody.setSize(60, bottomHeight);
+        botBody.setOffset(-30, -bottomHeight/2);
 
         this.time.delayedCall(6000, () => {
-            topPillar.destroy();
-            bottomPillar.destroy();
+            topPipe.destroy();
+            bottomPipe.destroy();
             if (!this.isGameOver) {
                 this.score++;
                 this.scoreText.setText(`Score: ${this.score}`);
@@ -379,12 +407,10 @@ export class Game extends Scene
             this.skyAssets.clear(true, true);
             this.createScenery();
             
-            // Update Hat
             this.hatEmoji.setText(data.hat);
             
-            // Re-apply offsets & flips for updated vehicle
-            let vEmoji = this.actualVehicles[this.currentVehicleIndex];
-            if (this.actualVehicles[this.currentVehicleIndex] === '🛹') {
+            let vEmoji = this.vehicles[this.currentVehicleIndex];
+            if (this.vehicles[this.currentVehicleIndex] === '🛹') {
                  if (this.level % 2 === 0) vEmoji = '🛸';
                  else vEmoji = '🛹';
             }

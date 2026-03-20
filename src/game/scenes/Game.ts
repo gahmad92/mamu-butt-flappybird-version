@@ -12,6 +12,7 @@ export class Game extends Scene
     clouds: Phaser.GameObjects.Group;
     hillsDist: Phaser.GameObjects.Group;
     hillsNear: Phaser.GameObjects.Group;
+    detailAssets: Phaser.GameObjects.Group;
     
     pillars: Phaser.Physics.Arcade.Group;
     
@@ -33,21 +34,29 @@ export class Game extends Scene
     vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
     currentVehicleIndex = 0;
     
-    // Ghibli Colors
-    level1Colors = {
+    // Ghibli Colors & Assets
+    level1Data = {
         sky: 0x81D4FA,
         pillar: 0xA5D6A7,
         hillsDist: 0xC8E6C9,
         hillsNear: 0x81C784,
-        accent: 0xFFAB91
+        details: ['🏘️', '🎡', '🌳']
     };
     
-    level2Colors = {
+    level2Data = {
         sky: 0xE1F5FE,
         pillar: 0xB3E5FC,
         hillsDist: 0xE1F5FE,
         hillsNear: 0x90CAF9,
-        accent: 0xFFFFFF
+        details: ['🛖', '🌲', '🏔️']
+    };
+
+    level3Data = {
+        sky: 0x1A237E,
+        pillar: 0x4A148C,
+        hillsDist: 0x0D47A1,
+        hillsNear: 0x1565C0,
+        details: ['🏙️', '🏮', '🗼']
     };
 
     constructor ()
@@ -72,10 +81,11 @@ export class Game extends Scene
         const height = this.scale.height;
 
         // Background layers
-        this.skyBg = this.add.rectangle(width/2, height/2, width, height, this.level1Colors.sky);
+        this.skyBg = this.add.rectangle(width/2, height/2, width, height, this.level1Data.sky);
         this.clouds = this.add.group();
         this.hillsDist = this.add.group();
         this.hillsNear = this.add.group();
+        this.detailAssets = this.add.group();
 
         this.createScenery();
 
@@ -172,17 +182,30 @@ export class Game extends Scene
     createScenery() {
         const width = this.scale.width;
         const height = this.scale.height;
+        const data = this.level === 1 ? this.level1Data : (this.level === 2 ? this.level2Data : this.level3Data);
 
+        // Distant Hills (Slowest)
         for (let i = 0; i < 3; i++) {
-            const hill = this.add.circle(i * 500, height - 100, 400, this.level1Colors.hillsDist).setAlpha(0.8);
+            const hill = this.add.circle(i * 500, height - 100, 400, data.hillsDist).setAlpha(0.8);
             this.hillsDist.add(hill);
         }
 
+        // Detail Assets (Medium) - Houses, trees, etc.
+        for (let i = 0; i < 6; i++) {
+            const asset = Phaser.Utils.Array.GetRandom(data.details);
+            const x = Phaser.Math.Between(0, width * 2);
+            const y = height - 100;
+            const detail = this.add.text(x, y, asset, { fontSize: '48px' }).setOrigin(0.5, 1).setAlpha(0.35);
+            this.detailAssets.add(detail);
+        }
+
+        // Near Hills (Faster)
         for (let i = 0; i < 4; i++) {
-            const hill = this.add.circle(i * 300, height - 50, 250, this.level1Colors.hillsNear).setAlpha(0.9);
+            const hill = this.add.circle(i * 300, height - 50, 250, data.hillsNear).setAlpha(0.9);
             this.hillsNear.add(hill);
         }
 
+        // Clouds (Floating)
         for (let i = 0; i < 5; i++) {
             const cloud = this.add.text(Phaser.Math.Between(0, width), Phaser.Math.Between(50, 300), '☁️', { fontSize: '64px' }).setAlpha(0.5);
             this.clouds.add(cloud);
@@ -195,6 +218,12 @@ export class Game extends Scene
         this.hillsDist.children.iterate((child: any) => {
             child.x -= 0.5;
             if (child.x < -400) child.x = this.scale.width + 400;
+            return true;
+        });
+
+        this.detailAssets.children.iterate((child: any) => {
+            child.x -= 1.0;
+            if (child.x < -100) child.x = this.scale.width + 100;
             return true;
         });
 
@@ -228,10 +257,10 @@ export class Game extends Scene
     }
 
     flap() {
-        if (this.isGameOver || this.isPaused || this.isTransitioning) return;
+        if (this.isGameOver || this.isPaused) return;
         
         const body = this.player.body as Phaser.Physics.Arcade.Body;
-        body.setVelocityY(-350);
+        body.setVelocityY(-380); // Restored stronger jump
         
         this.tweens.add({
             targets: this.player,
@@ -250,15 +279,15 @@ export class Game extends Scene
         const minPillarHeight = 100;
         const randomHeight = Phaser.Math.Between(minPillarHeight, height - gap - minPillarHeight);
 
-        const color = this.level === 1 ? this.level1Colors.pillar : this.level2Colors.pillar;
+        const data = this.level === 1 ? this.level1Data : (this.level === 2 ? this.level2Data : this.level3Data);
 
-        const topPillar = this.add.rectangle(width + 50, randomHeight / 2, 80, randomHeight, color).setStrokeStyle(4, 0xffffff, 0.5);
+        const topPillar = this.add.rectangle(width + 50, randomHeight / 2, 80, randomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5);
         this.pillars.add(topPillar);
         (topPillar.body as Phaser.Physics.Arcade.Body).setVelocityX(-200);
         (topPillar.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
 
         const bottomHeight = height - randomHeight - gap;
-        const bottomPillar = this.add.rectangle(width + 50, height - bottomHeight / 2, 80, bottomHeight, color).setStrokeStyle(4, 0xffffff, 0.5);
+        const bottomPillar = this.add.rectangle(width + 50, height - bottomHeight / 2, 80, bottomHeight, data.pillar).setStrokeStyle(4, 0xffffff, 0.5);
         this.pillars.add(bottomPillar);
         (bottomPillar.body as Phaser.Physics.Arcade.Body).setVelocityX(-200);
         (bottomPillar.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
@@ -276,28 +305,39 @@ export class Game extends Scene
 
     checkLevelTransition() {
         if (this.score === 10 && this.level === 1) {
-            this.isTransitioning = true;
-            this.level = 2;
-            this.levelText.setText('Level: Snowy Mountains');
+            this.performTransition(2, 'Level: Snowy Mountains', this.level2Data);
+        } else if (this.score === 20 && this.level === 2) {
+            this.performTransition(3, 'Level: Night City', this.level3Data);
+        }
+    }
+
+    performTransition(newLevel: number, label: string, data: any) {
+        this.isTransitioning = true;
+        this.level = newLevel;
+        this.levelText.setText(label);
+        
+        // Faster fade for better feel
+        this.cameras.main.fadeOut(300, 255, 255, 255);
+        
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.skyBg.setFillStyle(data.sky);
             
-            // Start Fade Out
-            this.cameras.main.fadeOut(500, 255, 255, 255);
+            this.hillsDist.clear(true, true);
+            this.hillsNear.clear(true, true);
+            this.detailAssets.clear(true, true);
+            this.createScenery();
             
-            this.cameras.main.once('camerafadeoutcomplete', () => {
-                // Change visuals
-                this.skyBg.setFillStyle(this.level2Colors.sky);
-                this.hillsDist.children.iterate((child: any) => { (child as Phaser.GameObjects.Shape).setFillStyle(this.level2Colors.hillsDist); return true; });
-                this.hillsNear.children.iterate((child: any) => { (child as Phaser.GameObjects.Shape).setFillStyle(this.level2Colors.hillsNear); return true; });
-                
-                if (this.vehicles[this.currentVehicleIndex] === '🛹') {
-                    this.vehicleEmoji.setText('🛸');
-                }
-                
-                // Fade Back In
-                this.cameras.main.fadeIn(500, 255, 255, 255);
+            if (this.vehicles[this.currentVehicleIndex] === '🛹' || this.level === 3) {
+                 if (this.level === 2) this.vehicleEmoji.setText('🛸');
+                 if (this.level === 3) this.vehicleEmoji.setText('🛋️');
+            }
+            
+            this.cameras.main.fadeIn(300, 255, 255, 255);
+            
+            this.time.delayedCall(100, () => {
                 this.isTransitioning = false;
             });
-        }
+        });
     }
 
     hitPillar() {

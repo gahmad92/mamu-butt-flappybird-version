@@ -11,6 +11,8 @@
 - [x] **Advanced Scenery**: Added parallax background layers (Sky, Clouds, Distant Hills, Near Hills).
 - [x] **Vehicle Expansion**: Implemented multiple options: Skateboard (🛹), Rickshaw (🛺), UFO (🛸), Boat (⛵), Scooter (🛵), and Sofa (🛋️).
 - [x] **Vehicle Picker**: Users can now click Mamu Butt in the Main Menu to cycle through vehicles.
+- [x] **Pause Feature**: Added ⏸️ button and 'P' key to pause the game.
+- [x] **Game Over Logic**: Fixed the scene transition so it only ends when Mamu actually hits a pillar.
 
 ## 🚧 In Progress
 - [ ] **Sound Effects**: Integrating nature-inspired sounds (wind, birds, soft piano).
@@ -18,6 +20,7 @@
 ## ⏳ To Do (Pending)
 - [ ] **Dynamic Level 3**: Underwater or Night biome.
 - [ ] **High Score Persistence**: Save the best score to local storage.
+
 
 
 ## ❌ Known Issues / Fixed Errors

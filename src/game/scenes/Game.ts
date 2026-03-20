@@ -24,6 +24,10 @@ export class Game extends Scene
     spawnTimer: Phaser.Time.TimerEvent;
     
     isGameOver: boolean = false;
+    isPaused: boolean = false;
+    isTransitioning: boolean = false;
+    pauseText: Phaser.GameObjects.Text;
+    pauseButton: Phaser.GameObjects.Text;
     
     // Vehicle Options
     vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
@@ -58,6 +62,8 @@ export class Game extends Scene
         this.score = 0;
         this.level = 1;
         this.isGameOver = false;
+        this.isPaused = false;
+        this.isTransitioning = false;
     }
 
     create ()
@@ -99,9 +105,34 @@ export class Game extends Scene
             stroke: '#455A64', strokeThickness: 2
         }).setOrigin(0.5).setDepth(100);
 
+        // Pause Button
+        this.pauseButton = this.add.text(width - 50, 50, '⏸️', { fontSize: '32px' })
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(101);
+
+        this.pauseButton.on('pointerdown', () => this.togglePause());
+
+        this.pauseText = this.add.text(width / 2, height / 2, 'PAUSED', {
+            fontFamily: 'Arial Black', fontSize: '64px', color: '#ffffff',
+            stroke: '#455A64', strokeThickness: 10
+        }).setOrigin(0.5).setDepth(101).setVisible(false);
+
         // Input
-        this.input.on('pointerdown', () => this.flap());
-        this.input.keyboard?.on('keydown-SPACE', () => this.flap());
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            if (pointer.x > width - 100 && pointer.y < 100) return;
+            this.flap();
+        });
+
+        if (this.input.keyboard) {
+            this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
+                if (event.key === 'p' || event.key === 'P') {
+                    this.togglePause();
+                } else if (event.code === 'Space') {
+                    this.flap();
+                }
+            });
+        }
 
         // Spawn pillars every 2 seconds
         this.spawnTimer = this.time.addEvent({
@@ -120,23 +151,38 @@ export class Game extends Scene
         EventBus.emit('current-scene-ready', this);
     }
 
+    togglePause() {
+        if (this.isGameOver || this.isTransitioning) return;
+        
+        this.isPaused = !this.isPaused;
+        
+        if (this.isPaused) {
+            this.physics.pause();
+            this.spawnTimer.paused = true;
+            this.pauseText.setVisible(true);
+            this.pauseButton.setText('▶️');
+        } else {
+            this.physics.resume();
+            this.spawnTimer.paused = false;
+            this.pauseText.setVisible(false);
+            this.pauseButton.setText('⏸️');
+        }
+    }
+
     createScenery() {
         const width = this.scale.width;
         const height = this.scale.height;
 
-        // Distant Hills (Slowest)
         for (let i = 0; i < 3; i++) {
             const hill = this.add.circle(i * 500, height - 100, 400, this.level1Colors.hillsDist).setAlpha(0.8);
             this.hillsDist.add(hill);
         }
 
-        // Near Hills (Faster)
         for (let i = 0; i < 4; i++) {
             const hill = this.add.circle(i * 300, height - 50, 250, this.level1Colors.hillsNear).setAlpha(0.9);
             this.hillsNear.add(hill);
         }
 
-        // Clouds (Floating)
         for (let i = 0; i < 5; i++) {
             const cloud = this.add.text(Phaser.Math.Between(0, width), Phaser.Math.Between(50, 300), '☁️', { fontSize: '64px' }).setAlpha(0.5);
             this.clouds.add(cloud);
@@ -144,7 +190,7 @@ export class Game extends Scene
     }
 
     updateScenery(delta: number) {
-        if (this.isGameOver) return;
+        if (this.isGameOver || this.isPaused) return;
 
         this.hillsDist.children.iterate((child: any) => {
             child.x -= 0.5;
@@ -182,12 +228,11 @@ export class Game extends Scene
     }
 
     flap() {
-        if (this.isGameOver) return;
+        if (this.isGameOver || this.isPaused || this.isTransitioning) return;
         
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         body.setVelocityY(-350);
         
-        // Tilt animation
         this.tweens.add({
             targets: this.player,
             angle: -15,
@@ -197,30 +242,27 @@ export class Game extends Scene
     }
 
     spawnPillar() {
-        if (this.isGameOver) return;
+        if (this.isGameOver || this.isPaused || this.isTransitioning) return;
 
         const width = this.scale.width;
         const height = this.scale.height;
-        const gap = 280; // Larger gap for extra "easy" gameplay
+        const gap = 280;
         const minPillarHeight = 100;
         const randomHeight = Phaser.Math.Between(minPillarHeight, height - gap - minPillarHeight);
 
         const color = this.level === 1 ? this.level1Colors.pillar : this.level2Colors.pillar;
 
-        // Top Pillar
         const topPillar = this.add.rectangle(width + 50, randomHeight / 2, 80, randomHeight, color).setStrokeStyle(4, 0xffffff, 0.5);
         this.pillars.add(topPillar);
         (topPillar.body as Phaser.Physics.Arcade.Body).setVelocityX(-200);
         (topPillar.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
 
-        // Bottom Pillar
         const bottomHeight = height - randomHeight - gap;
         const bottomPillar = this.add.rectangle(width + 50, height - bottomHeight / 2, 80, bottomHeight, color).setStrokeStyle(4, 0xffffff, 0.5);
         this.pillars.add(bottomPillar);
         (bottomPillar.body as Phaser.Physics.Arcade.Body).setVelocityX(-200);
         (bottomPillar.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
 
-        // Clean up pillars
         this.time.delayedCall(6000, () => {
             topPillar.destroy();
             bottomPillar.destroy();
@@ -234,29 +276,38 @@ export class Game extends Scene
 
     checkLevelTransition() {
         if (this.score === 10 && this.level === 1) {
+            this.isTransitioning = true;
             this.level = 2;
             this.levelText.setText('Level: Snowy Mountains');
-            this.cameras.main.fade(500, 255, 255, 255);
-            this.time.delayedCall(500, () => {
+            
+            // Start Fade Out
+            this.cameras.main.fadeOut(500, 255, 255, 255);
+            
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                // Change visuals
                 this.skyBg.setFillStyle(this.level2Colors.sky);
-                this.hillsDist.children.iterate((child: any) => { child.setFillStyle(this.level2Colors.hillsDist); return true; });
-                this.hillsNear.children.iterate((child: any) => { child.setFillStyle(this.level2Colors.hillsNear); return true; });
+                this.hillsDist.children.iterate((child: any) => { (child as Phaser.GameObjects.Shape).setFillStyle(this.level2Colors.hillsDist); return true; });
+                this.hillsNear.children.iterate((child: any) => { (child as Phaser.GameObjects.Shape).setFillStyle(this.level2Colors.hillsNear); return true; });
                 
-                // If they picked rickshaw, keep it, but maybe add snow sparkles
                 if (this.vehicles[this.currentVehicleIndex] === '🛹') {
-                    this.vehicleEmoji.setText('🛸'); // Default level 2 upgrade
+                    this.vehicleEmoji.setText('🛸');
                 }
+                
+                // Fade Back In
+                this.cameras.main.fadeIn(500, 255, 255, 255);
+                this.isTransitioning = false;
             });
         }
     }
 
     hitPillar() {
+        if (this.isTransitioning) return; // Invincible during level change
+        
         this.isGameOver = true;
         this.physics.pause();
         this.spawnTimer.remove();
         
         this.playerEmoji.setText('😵');
-        
         this.cameras.main.shake(500, 0.02);
         
         this.time.delayedCall(1000, () => {
@@ -265,11 +316,10 @@ export class Game extends Scene
     }
 
     update(time: number, delta: number) {
-        if (this.isGameOver || !this.player || !this.player.body) return;
+        if (this.isGameOver || this.isPaused || !this.player || !this.player.body) return;
         
         this.updateScenery(delta);
 
-        // Character rotation based on velocity
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         if (body.velocity.y > 0) {
             this.player.angle = Math.min(this.player.angle + 2, 30);

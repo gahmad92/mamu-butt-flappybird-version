@@ -35,7 +35,8 @@ export class Game extends Scene
     tourText: Phaser.GameObjects.Text;
     
     // Vehicle Options
-    vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
+    vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', ' Couch 🛋️']; // Sofa is a couch
+    actualVehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
     currentVehicleIndex = 0;
     
     // 20 LEVEL BIOMES (Ghibli Palettes)
@@ -94,9 +95,14 @@ export class Game extends Scene
 
         this.createScenery();
 
-        // Character: Mamu Butt (Depth 50) - Only collides with pillars
+        // Character: Mamu Butt (Depth 50) - Original Good Position
         this.playerEmoji = this.add.text(0, -20, '🧔', { fontSize: '64px' }).setOrigin(0.5);
-        this.vehicleEmoji = this.add.text(0, 20, this.vehicles[this.currentVehicleIndex], { fontSize: '56px' }).setOrigin(0.5);
+        
+        // Vehicle with Dynamic Offset & Flip (🛺, ⛵, 🛵 to the Right and Facing Right)
+        const vEmoji = this.actualVehicles[this.currentVehicleIndex];
+        this.vehicleEmoji = this.add.text(0, 20, vEmoji, { fontSize: '56px' }).setOrigin(0.5);
+        
+        this.applyVehicleStyle(vEmoji);
         
         this.player = this.add.container(200, height / 2, [this.vehicleEmoji, this.playerEmoji]);
         this.player.setSize(40, 40); 
@@ -115,7 +121,7 @@ export class Game extends Scene
             }).setOrigin(0.5).setDepth(200);
         }
 
-        // Pillars (Depth 100) - The only solid objects
+        // Pillars (Depth 100)
         this.pillars = this.physics.add.group();
 
         // UI (Depth 200)
@@ -169,6 +175,16 @@ export class Game extends Scene
         this.createParticles();
 
         EventBus.emit('current-scene-ready', this);
+    }
+
+    applyVehicleStyle(emoji: string) {
+        if (emoji === '🛺' || emoji === '⛵' || emoji === '🛵') {
+            this.vehicleEmoji.setX(35);
+            this.vehicleEmoji.setScale(-1, 1); // Flip to face Right
+        } else {
+            this.vehicleEmoji.setX(0);
+            this.vehicleEmoji.setScale(1, 1);
+        }
     }
 
     toggleTourMode() {
@@ -348,10 +364,14 @@ export class Game extends Scene
             this.skyAssets.clear(true, true);
             this.createScenery();
             
-            if (this.vehicles[this.currentVehicleIndex] === '🛹') {
-                 if (this.level % 2 === 0) this.vehicleEmoji.setText('🛸');
-                 else this.vehicleEmoji.setText('🛹');
+            // Re-apply offsets & flips for updated vehicle
+            let vEmoji = this.actualVehicles[this.currentVehicleIndex];
+            if (this.actualVehicles[this.currentVehicleIndex] === '🛹') {
+                 if (this.level % 2 === 0) vEmoji = '🛸';
+                 else vEmoji = '🛹';
             }
+            this.vehicleEmoji.setText(vEmoji);
+            this.applyVehicleStyle(vEmoji);
             
             this.cameras.main.fadeIn(300, 255, 255, 255);
             this.time.delayedCall(100, () => { this.isTransitioning = false; });

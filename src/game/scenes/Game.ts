@@ -428,8 +428,11 @@ export class Game extends Scene
         this.isGameOver = true;
         this.physics.pause();
         this.spawnTimer.remove();
+        this.sound.stopAll(); // Stop music on game over
+        
         this.playerEmoji.setText('😵');
         this.cameras.main.shake(500, 0.02);
+        
         this.time.delayedCall(1000, () => { this.scene.start('GameOver'); });
     }
 

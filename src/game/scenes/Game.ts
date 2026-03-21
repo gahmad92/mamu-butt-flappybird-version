@@ -38,8 +38,7 @@ export class Game extends Scene {
     tourText: Phaser.GameObjects.Text;
 
     // Vehicle Options
-    actualVehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', ' Couch 🛋️'];
-    vehicles = ['🛹', '🛺', '🛸', '🛋️', '🛵', '🛋️'];
+    vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️', '☁️'];
     currentVehicleIndex = 0;
 
     // 20 LEVEL BIOMES (Ghibli Palettes)
@@ -71,9 +70,7 @@ export class Game extends Scene {
     }
 
     init(data: { vehicleIndex?: number, isTourMode?: boolean }) {
-        if (data && data.vehicleIndex !== undefined) {
-            this.currentVehicleIndex = data.vehicleIndex;
-        }
+        this.currentVehicleIndex = data?.vehicleIndex ?? this.registry.get('vehicleIndex') ?? 0;
         this.isTourMode = data?.isTourMode || false;
         this.score = 0;
         this.level = 1;
@@ -277,8 +274,9 @@ export class Game extends Scene {
             this.hillsNear.add(hill);
         }
 
-        for (let i = 0; i < 5; i++) {
-            const cloud = this.add.text(Phaser.Math.Between(0, width), Phaser.Math.Between(50, 300), '☁️', { fontSize: '64px' }).setAlpha(0.5).setDepth(5);
+        for (let i = 0; i < 6; i++) {
+            const cloud = this.createComicCloud(Phaser.Math.Between(0, width * 1.5), Phaser.Math.Between(50, 350), Phaser.Math.Between(150, 250), 60);
+            cloud.setAlpha(0.85).setDepth(2); // In between distant and near mountains
             this.clouds.add(cloud);
         }
     }
@@ -311,8 +309,8 @@ export class Game extends Scene {
         });
 
         this.clouds.children.iterate((child: any) => {
-            child.x -= 0.2;
-            if (child.x < -100) child.x = this.scale.width + 100;
+            child.x -= 0.6; // Slightly faster drifting than dist mountains
+            if (child.x < -300) child.x = this.scale.width + 200;
             return true;
         });
     }
@@ -366,6 +364,36 @@ export class Game extends Scene {
         const snowDetail = this.add.ellipse(cx + width * 0.1, height * 0.3, width * 0.25, height * 0.2, 0xffffff, 0.2);
 
         container.add([hill, snow, snowDetail]);
+        return container;
+    }
+
+    createComicCloud(x: number, y: number, width: number, height: number) {
+        const container = this.add.container(x, y);
+
+        // A cloud is essentially 3 or 4 overlapping ellipses
+        // Main bottom fluffy base (drawn with black strokes)
+        const base = this.add.ellipse(0, 0, width, height, 0xffffff)
+            .setStrokeStyle(3, 0x000000);
+
+        // Puff 1
+        const puff1 = this.add.ellipse(-width * 0.25, -height * 0.4, width * 0.5, height * 0.8, 0xffffff)
+            .setStrokeStyle(3, 0x000000);
+
+        // Puff 2 (The biggest middle-right puff)
+        const puff2 = this.add.ellipse(width * 0.15, -height * 0.5, width * 0.6, height * 1.0, 0xffffff)
+            .setStrokeStyle(3, 0x000000);
+
+        // Solid white blobs exactly the same size minus the stroke width, 
+        // to cover the inner black strokes where they intersect!
+        const baseFill = this.add.ellipse(0, 0, width - 6, height - 6, 0xffffff);
+        const puff1Fill = this.add.ellipse(-width * 0.25, -height * 0.4, width * 0.5 - 6, height * 0.8 - 6, 0xffffff);
+        const puff2Fill = this.add.ellipse(width * 0.15, -height * 0.5, width * 0.6 - 6, height * 1.0 - 6, 0xffffff);
+
+        // Optional shadow underneath
+        const shadow = this.add.ellipse(-width * 0.1, height * 0.2, width * 0.7, height * 0.4, 0x000000, 0.05);
+
+        // Ordering is crucial: strokes go first, then borderless fills overlay them to hide internal intersection lines!
+        container.add([base, puff1, puff2, baseFill, puff1Fill, puff2Fill, shadow]);
         return container;
     }
 

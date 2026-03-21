@@ -1,28 +1,24 @@
 import { GameObjects, Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 
-export class MainMenu extends Scene
-{
+export class MainMenu extends Scene {
     background: GameObjects.Rectangle;
     title: GameObjects.Text;
     subtitle: GameObjects.Text;
     character: GameObjects.Container;
     vehicleEmoji: GameObjects.Text;
-    
+
     musicToggle: GameObjects.Text;
     isMusicMuted: boolean = false;
-    
-    vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', ' Couch 🛋️'];
-    actualVehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
+
+    vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️', '☁️'];
     currentVehicleIndex = 0;
 
-    constructor ()
-    {
+    constructor() {
         super('MainMenu');
     }
 
-    create ()
-    {
+    create() {
         const width = this.scale.width;
         const height = this.scale.height;
 
@@ -31,18 +27,22 @@ export class MainMenu extends Scene
         // Character Preview
         const mamu = this.add.text(0, -20, '🧔', { fontSize: '80px' }).setOrigin(0.5);
         this.vehicleEmoji = this.add.text(0, 30, this.vehicles[this.currentVehicleIndex], { fontSize: '60px' }).setOrigin(0.5);
-        this.character = this.add.container(width / 2, height / 2 - 50, [this.vehicleEmoji, mamu]);
 
+        this.character = this.add.container(width / 2, height / 2 - 50, [this.vehicleEmoji, mamu]);
         this.character.setSize(120, 150);
         this.character.setInteractive({ useHandCursor: true });
-        
+
         this.add.text(width / 2, height / 2 + 50, 'Click Mamu to Change Ride', {
             fontFamily: 'Arial', fontSize: '18px', color: '#455A64'
         }).setOrigin(0.5);
 
+        // Save default choice to registry immediately
+        this.registry.set('vehicleIndex', this.currentVehicleIndex);
+
         this.character.on('pointerdown', () => {
             this.currentVehicleIndex = (this.currentVehicleIndex + 1) % this.vehicles.length;
             this.vehicleEmoji.setText(this.vehicles[this.currentVehicleIndex]);
+            this.registry.set('vehicleIndex', this.currentVehicleIndex);
             this.tweens.add({ targets: this.character, scale: 1.2, duration: 100, yoyo: true });
         });
 
@@ -84,7 +84,7 @@ export class MainMenu extends Scene
         if (this.sound.context.state === 'suspended') {
             this.sound.context.resume();
         }
-        
+
         const music = this.sound.get('bg-music');
         if (!music) {
             this.sound.play('bg-music', { loop: true, volume: 0.5 });

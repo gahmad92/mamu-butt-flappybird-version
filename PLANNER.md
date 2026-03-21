@@ -18,7 +18,11 @@ A whimsical, Ghibli-inspired "Flappy Bird" clone featuring the legendary charact
 - [x] **Dynamic Backgrounds**: Parallax scrolling layers for sky, clouds, and hills.
 - [x] **Detailed Scenery**: Level-specific assets like cottages, pine trees, and city silhouettes.
 - [x] **Vehicle Variety**: Rickshaws, UFOs, Boats, and more.
+- [ ] **Mobile Expansion**: Transform the game into an Android App using Capacitor.
+- [ ] **Gesture Controls**: Implement Tap (Flap), Long-Press (Hover), and Swipe (Dive).
+- [ ] **App Store Readiness**: Create custom Mamu icons and splash screens.
 - [ ] **Soundscape**: Soft piano tracks and nature sounds (birds, wind).
 - [ ] **Level Expansion**: Add an Underwater Biome (Level 4).
+
 - [ ] **Progression**: High score tracking and vehicle unlocks.
 

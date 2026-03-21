@@ -1,14 +1,14 @@
 import { EventBus } from '../EventBus';
 import { Scene } from 'phaser';
+import { App } from '@capacitor/app';
 
-export class Game extends Scene
-{
+export class Game extends Scene {
     player: Phaser.GameObjects.Container;
     playerEmoji: Phaser.GameObjects.Text;
     vehicleEmoji: Phaser.GameObjects.Text;
     hatEmoji: Phaser.GameObjects.Text;
     companionEmoji: Phaser.GameObjects.Text;
-    
+
     // Parallax Backgrounds
     skyBg: Phaser.GameObjects.Rectangle;
     clouds: Phaser.GameObjects.Group;
@@ -16,31 +16,32 @@ export class Game extends Scene
     hillsNear: Phaser.GameObjects.Group;
     detailAssets: Phaser.GameObjects.Group;
     skyAssets: Phaser.GameObjects.Group;
-    
+
     pillars: Phaser.Physics.Arcade.Group;
-    
+
     score: number = 0;
     scoreText: Phaser.GameObjects.Text;
-    
+
     level: number = 1;
     levelText: Phaser.GameObjects.Text;
-    
+
     spawnTimer: Phaser.Time.TimerEvent;
-    
+
     isGameOver: boolean = false;
     isPaused: boolean = false;
     isTransitioning: boolean = false;
     isTourMode: boolean = false; // "Cheat" mode
-    
+    isHovering: boolean = false;
+
     pauseText: Phaser.GameObjects.Text;
     pauseButton: Phaser.GameObjects.Text;
     tourText: Phaser.GameObjects.Text;
-    
+
     // Vehicle Options
     actualVehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', ' Couch 🛋️'];
-    vehicles = ['🛹', '🛺', '🛸', '⛵', '🛵', '🛋️'];
+    vehicles = ['🛹', '🛺', '🛸', '🛋️', '🛵', '🛋️'];
     currentVehicleIndex = 0;
-    
+
     // 20 LEVEL BIOMES (Ghibli Palettes)
     levelData = [
         { name: "Jungle Village", sky: 0x81D4FA, pillar: 0xA5D6A7, dist: 0xC8E6C9, near: 0x81C784, details: ['🏘️', '🎡', '🌳'], skyDetails: [], hat: '👒' },
@@ -65,8 +66,7 @@ export class Game extends Scene
         { name: "Cosmic Glow", sky: 0x4A148C, pillar: 0xAB47BC, dist: 0x7B1FA2, near: 0x6A1B9A, details: ['🛸', '👽', '👾'], skyDetails: ['🐉', '🛸', '🚀'], hat: '👨‍🚀' }
     ];
 
-    constructor ()
-    {
+    constructor() {
         super('Game');
     }
 
@@ -80,15 +80,15 @@ export class Game extends Scene
         this.isGameOver = false;
         this.isPaused = false;
         this.isTransitioning = false;
+        this.isHovering = false;
     }
 
-    create ()
-    {
+    create() {
         const width = this.scale.width;
         const height = this.scale.height;
 
         // Background layers (Depths 0-10)
-        this.skyBg = this.add.rectangle(width/2, height/2, width, height, this.levelData[0].sky).setDepth(0);
+        this.skyBg = this.add.rectangle(width / 2, height / 2, width, height, this.levelData[0].sky).setDepth(0);
         this.clouds = this.add.group();
         this.hillsDist = this.add.group();
         this.hillsNear = this.add.group();
@@ -99,21 +99,21 @@ export class Game extends Scene
 
         // Character: Mamu Butt
         this.playerEmoji = this.add.text(0, -20, '🧔', { fontSize: '64px' }).setOrigin(0.5);
-        
+
         const vEmoji = this.vehicles[this.currentVehicleIndex];
         this.vehicleEmoji = this.add.text(0, 20, vEmoji, { fontSize: '56px' }).setOrigin(0.5);
         this.hatEmoji = this.add.text(0, -55, this.levelData[0].hat, { fontSize: '40px' }).setOrigin(0.5);
         this.companionEmoji = this.add.text(-45, -30, '🐦', { fontSize: '32px' }).setOrigin(0.5);
-        
+
         this.applyVehicleStyle(vEmoji);
-        
+
         this.player = this.add.container(200, height / 2, [this.vehicleEmoji, this.playerEmoji, this.hatEmoji, this.companionEmoji]);
         this.player.setDepth(50);
-        
-        // MERCY HITBOX: Use a tiny circle (radius 10) centered on Mamu's face
+
+        // Hitbox: Using a larger circle for more challenge
         this.physics.add.existing(this.player);
         const body = this.player.body as Phaser.Physics.Arcade.Body;
-        body.setCircle(10, -10, -30); // Tiny 20px diameter circle right on the face
+        body.setCircle(16, -16, -30); // Increased radius from 10 to 16
         body.setGravityY(900);
         body.setCollideWorldBounds(true);
 
@@ -151,9 +151,25 @@ export class Game extends Scene
             stroke: '#455A64', strokeThickness: 10
         }).setOrigin(0.5).setDepth(201).setVisible(false);
 
+        // Capacitor Back Button Mapping
+        App.addListener('backButton', () => {
+            this.togglePause();
+        });
+
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (pointer.x > width - 100 && pointer.y < 100) return;
             this.flap();
+        });
+
+        this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+            if (this.isGameOver || this.isPaused) return;
+
+            // DIVE: Fast swipe down
+            const duration = pointer.upTime - pointer.downTime;
+            const distanceY = pointer.upY - pointer.downY;
+            if (duration < 300 && distanceY > 100) {
+                this.dive();
+            }
         });
 
         if (this.input.keyboard) {
@@ -164,6 +180,8 @@ export class Game extends Scene
                     this.toggleTourMode();
                 } else if (event.code === 'Space') {
                     this.flap();
+                } else if (event.key === 'ArrowDown') {
+                    this.dive();
                 }
             });
         }
@@ -194,7 +212,7 @@ export class Game extends Scene
     toggleTourMode() {
         this.isTourMode = !this.isTourMode;
         this.player.setAlpha(this.isTourMode ? 0.6 : 1.0);
-        
+
         if (this.isTourMode) {
             if (!this.tourText) {
                 this.tourText = this.add.text(this.scale.width / 2, this.scale.height - 40, 'WORLD TOUR MODE: INVINCIBLE', {
@@ -211,7 +229,7 @@ export class Game extends Scene
     togglePause() {
         if (this.isGameOver || this.isTransitioning) return;
         this.isPaused = !this.isPaused;
-        
+
         if (this.isPaused) {
             this.physics.pause();
             this.spawnTimer.paused = true;
@@ -230,8 +248,9 @@ export class Game extends Scene
         const height = this.scale.height;
         const data = this.levelData[Math.min(this.level - 1, 19)];
 
-        for (let i = 0; i < 3; i++) {
-            const hill = this.add.circle(i * 500, height - 100, 400, data.dist).setAlpha(0.8).setDepth(1);
+        for (let i = 0; i < 4; i++) {
+            const hill = this.createComicMountain(i * 400 - 100, height - 350, 600, 400, data.dist, 4);
+            hill.setAlpha(0.8).setDepth(1);
             this.hillsDist.add(hill);
         }
 
@@ -252,8 +271,9 @@ export class Game extends Scene
             this.detailAssets.add(detail);
         }
 
-        for (let i = 0; i < 4; i++) {
-            const hill = this.add.circle(i * 300, height - 50, 250, data.near).setAlpha(0.9).setDepth(4);
+        for (let i = 0; i < 5; i++) {
+            const hill = this.createComicMountain(i * 300 - 50, height - 200, 400, 250, data.near, 6);
+            hill.setAlpha(0.9).setDepth(4);
             this.hillsNear.add(hill);
         }
 
@@ -268,7 +288,7 @@ export class Game extends Scene
 
         this.hillsDist.children.iterate((child: any) => {
             child.x -= 0.5;
-            if (child.x < -400) child.x = this.scale.width + 400;
+            if (child.x < -800) child.x = this.scale.width + 400;
             return true;
         });
 
@@ -286,7 +306,7 @@ export class Game extends Scene
 
         this.hillsNear.children.iterate((child: any) => {
             child.x -= 1.5;
-            if (child.x < -250) child.x = this.scale.width + 250;
+            if (child.x < -600) child.x = this.scale.width + 250;
             return true;
         });
 
@@ -309,9 +329,9 @@ export class Game extends Scene
     flap() {
         if (this.isGameOver || this.isPaused) return;
         (this.player.body as Phaser.Physics.Arcade.Body).setVelocityY(-380);
-        
+
         this.tweens.add({ targets: this.player, angle: -15, duration: 100, yoyo: true });
-        
+
         this.tweens.add({
             targets: this.companionEmoji,
             y: -45,
@@ -322,24 +342,51 @@ export class Game extends Scene
         });
     }
 
+    dive() {
+        if (this.isGameOver || this.isPaused) return;
+        (this.player.body as Phaser.Physics.Arcade.Body).setVelocityY(600);
+        this.tweens.add({ targets: this.player, angle: 45, duration: 150 });
+    }
+
+    createComicMountain(x: number, y: number, width: number, height: number, color: number, strokeWidth: number) {
+        const container = this.add.container(x, y);
+
+        const cx = width / 2;
+        // Center the ellipse way down so only the top curve shows, making a smooth soft hill
+        const cy = height;
+
+        // Main soft, round hill
+        const hill = this.add.ellipse(cx, cy, width, height * 2.0, color)
+            .setStrokeStyle(strokeWidth, 0x000000);
+
+        // Highlight/Snow blob near the peak
+        const snow = this.add.ellipse(cx, height * 0.2, width * 0.5, height * 0.4, 0xffffff, 0.3);
+
+        // A smaller secondary blob to break up the perfect symmetry and look more organic
+        const snowDetail = this.add.ellipse(cx + width * 0.1, height * 0.3, width * 0.25, height * 0.2, 0xffffff, 0.2);
+
+        container.add([hill, snow, snowDetail]);
+        return container;
+    }
+
     createComicPipe(x: number, height: number, color: number, isTop: boolean) {
         const width = 80;
         const rimWidth = 100;
         const rimHeight = 40;
         const container = this.add.container(x, isTop ? height / 2 : this.scale.height - height / 2);
-        
+
         const body = this.add.rectangle(0, 0, width, height, color)
             .setStrokeStyle(4, 0x000000);
-        
+
         const rimY = isTop ? (height / 2) - (rimHeight / 2) : -(height / 2) + (rimHeight / 2);
         const rim = this.add.rectangle(0, rimY, rimWidth, rimHeight, color)
             .setStrokeStyle(4, 0x000000);
-            
-        const highlight = this.add.rectangle(-width/4, 0, 10, height - 10, 0xffffff, 0.3);
-        
+
+        const highlight = this.add.rectangle(-width / 4, 0, 10, height - 10, 0xffffff, 0.3);
+
         container.add([body, rim, highlight]);
         container.setDepth(100);
-        
+
         return container;
     }
 
@@ -348,29 +395,34 @@ export class Game extends Scene
 
         const width = this.scale.width;
         const height = this.scale.height;
-        const gap = 320; // HUGE GAP FOR MERCY
-        const minPillarHeight = 100;
+        // Dynamic Difficulty: Gap shrinks until level 8, then stays constant at 200
+        const effectiveLevelForGap = Math.min(this.level, 8);
+        const gap = 320 - (effectiveLevelForGap * 15);
+        const speed = -200 - (this.level * 12);
+
+        // Random Heights: Lowered min height to 50 so gaps can be extremely high or low
+        const minPillarHeight = 50;
         const randomHeight = Phaser.Math.Between(minPillarHeight, height - gap - minPillarHeight);
         const data = this.levelData[Math.min(this.level - 1, 19)];
 
         const topPipe = this.createComicPipe(width + 50, randomHeight, data.pillar, true);
         this.pillars.add(topPipe);
         const topBody = topPipe.body as Phaser.Physics.Arcade.Body;
-        topBody.setVelocityX(-200);
+        topBody.setVelocityX(speed);
         topBody.setAllowGravity(false);
-        // MERCY PIPE: Hitbox is narrower than visual (60px instead of 80px)
-        topBody.setSize(60, randomHeight);
-        topBody.setOffset(-30, -randomHeight/2);
+        // Pipe Hitbox: Slightly more punishing (72px instead of 60px)
+        topBody.setSize(72, randomHeight);
+        topBody.setOffset(-36, -randomHeight / 2);
 
         const bottomHeight = height - randomHeight - gap;
         const bottomPipe = this.createComicPipe(width + 50, bottomHeight, data.pillar, false);
         this.pillars.add(bottomPipe);
         const botBody = bottomPipe.body as Phaser.Physics.Arcade.Body;
-        botBody.setVelocityX(-200);
+        botBody.setVelocityX(speed);
         botBody.setAllowGravity(false);
-        // MERCY PIPE: Hitbox is narrower than visual
-        botBody.setSize(60, bottomHeight);
-        botBody.setOffset(-30, -bottomHeight/2);
+        // Pipe Hitbox: Slightly more punishing (72px instead of 60px)
+        botBody.setSize(72, bottomHeight);
+        botBody.setOffset(-36, -bottomHeight / 2);
 
         this.time.delayedCall(6000, () => {
             topPipe.destroy();
@@ -397,7 +449,7 @@ export class Game extends Scene
         this.level = newLevel;
         const data = this.levelData[Math.min(this.level - 1, 19)];
         this.levelText.setText(`Level ${this.level}: ${data.name}`);
-        
+
         this.cameras.main.fadeOut(300, 255, 255, 255);
         this.cameras.main.once('camerafadeoutcomplete', () => {
             this.skyBg.setFillStyle(data.sky);
@@ -406,40 +458,63 @@ export class Game extends Scene
             this.detailAssets.clear(true, true);
             this.skyAssets.clear(true, true);
             this.createScenery();
-            
+
             this.hatEmoji.setText(data.hat);
-            
+
             let vEmoji = this.vehicles[this.currentVehicleIndex];
             if (this.vehicles[this.currentVehicleIndex] === '🛹') {
-                 if (this.level % 2 === 0) vEmoji = '🛸';
-                 else vEmoji = '🛹';
+                if (this.level % 2 === 0) vEmoji = '🛸';
+                else vEmoji = '🛹';
             }
             this.vehicleEmoji.setText(vEmoji);
             this.applyVehicleStyle(vEmoji);
-            
+
             this.cameras.main.fadeIn(300, 255, 255, 255);
             this.time.delayedCall(100, () => { this.isTransitioning = false; });
         });
     }
 
     hitPillar() {
-        if (this.isTransitioning || this.isTourMode) return; 
-        
+        if (this.isTransitioning || this.isTourMode) return;
+
         this.isGameOver = true;
         this.physics.pause();
         this.spawnTimer.remove();
         this.sound.stopAll(); // Stop music on game over
-        
+
         this.playerEmoji.setText('😵');
         this.cameras.main.shake(500, 0.02);
-        
+
         this.time.delayedCall(1000, () => { this.scene.start('GameOver'); });
     }
 
     update(time: number, delta: number) {
         if (this.isGameOver || this.isPaused || !this.player || !this.player.body) return;
-        this.updateScenery(delta);
+
+        // HOVER: Long press reduces gravity
+        const pointer = this.input.activePointer;
         const body = this.player.body as Phaser.Physics.Arcade.Body;
-        if (body.velocity.y > 0) { this.player.angle = Math.min(this.player.angle + 2, 30); }
+
+        if (pointer.isDown && pointer.getDuration() > 500) {
+            if (!this.isHovering) {
+                this.isHovering = true;
+                body.setGravityY(450); // 50% gravity
+                this.tweens.add({ targets: this.player, angle: 0, duration: 200 });
+                this.player.setAlpha(0.8);
+            }
+        } else {
+            if (this.isHovering) {
+                this.isHovering = false;
+                body.setGravityY(900); // Normal gravity
+                this.player.setAlpha(1.0);
+            }
+        }
+
+        this.updateScenery(delta);
+
+        if (body.velocity.y > 0 && !this.isHovering) {
+            this.player.angle = Math.min(this.player.angle + 2, 30);
+        }
     }
 }
+
